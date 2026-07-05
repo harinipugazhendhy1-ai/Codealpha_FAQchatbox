@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ Chatbox</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .chatbox {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.bot .message-content {
+            background: #e9ecef;
+            color: #333;
+            border-bottom-left-radius: 0;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 0;
+        }
+
+        .input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            padding: 10px 15px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-area input:focus {
+            border-color: #667eea;
+        }
+
+        .input-area button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .input-area button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .input-area button:active {
+            transform: translateY(0);
+        }
+
+        .suggestion-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding: 0 15px;
+        }
+
+        .chip {
+            background: #e9ecef;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #999;
+            padding: 10px;
+            font-size: 13px;
+        }
+
+        .scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #ccc white;
+        }
+
+        .scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        .messages.scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #ccc white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chatbox">
+            <div class="header">
+                <h1>💬 FAQ Chatbox</h1>
+                <p>Ask me anything!</p>
+            </div>
+
+            <div class="messages scrollbar" id="messages">
+                <div class="welcome-message">
+                    Start by typing a question or click a suggestion below
+                </div>
+            </div>
+
+            <div style="padding: 0 15px;">
+                <div class="suggestion-chips" id="suggestions"></div>
+            </div>
+
+            <div class="input-area">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="Type your question..." 
+                    autocomplete="off"
+                >
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FAQ Database
+        const faqDatabase = [
+            {
+                id: 1,
+                question: "What is this FAQ chatbox?",
+                keywords: ["faq", "chatbox", "what"],
+                answer: "This is an intelligent FAQ chatbox that helps you find answers to common questions. It uses keyword matching to provide relevant responses quickly."
+            },
+            {
+                id: 2,
+                question: "How do I use this chatbox?",
+                keywords: ["use", "how", "usage", "tutorial"],
+                answer: "Simply type your question in the input field and press Send (or Enter). The chatbox will search its database and provide the most relevant answer."
+            },
+            {
+                id: 3,
+                question: "Can I search by keywords?",
+                keywords: ["search", "keywords", "find"],
+                answer: "Yes! The chatbox uses advanced keyword matching. Type any relevant words from your question, and it will find the best matching FAQ."
+            },
+            {
+                id: 4,
+                question: "What topics are covered?",
+                keywords: ["topics", "covered", "categories"],
+                answer: "Our FAQ covers a wide range of topics including usage instructions, troubleshooting, features, and more. Feel free to ask about anything!"
+            },
+            {
+                id: 5,
+                question: "How does the matching algorithm work?",
+                keywords: ["algorithm", "matching", "technical"],
+                answer: "The system uses TF-IDF (Term Frequency-Inverse Document Frequency) scoring combined with keyword matching to find the most relevant answer to your question."
+            },
+            {
+                id: 6,
+                question: "Can I provide feedback?",
+                keywords: ["feedback", "suggestion", "report", "issue"],
+                answer: "Your feedback is valuable! While this demo version doesn't have direct feedback integration, you can manually suggest improvements through the standard feedback channels."
+            },
+            {
+                id: 7,
+                question: "Is my data saved?",
+                keywords: ["data", "save", "privacy", "storage"],
+                answer: "Chat history is saved locally in your browser using localStorage. No data is sent to external servers, ensuring your privacy."
+            },
+            {
+                id: 8,
+                question: "How can I clear the chat history?",
+                keywords: ["clear", "history", "delete", "reset"],
+                answer: "Simply refresh the page or open your browser's developer console and run: localStorage.removeItem('chatHistory')"
+            },
+            {
+                id: 9,
+                question: "What if I can't find an answer?",
+                keywords: ["not found", "answer", "missing", "help"],
+                answer: "If your question isn't covered, try rephrasing it with different keywords. You can also reach out to support for assistance with specific topics."
+            },
+            {
+                id: 10,
+                question: "Is this mobile-friendly?",
+                keywords: ["mobile", "responsive", "phone", "device"],
+                answer: "Yes! This FAQ chatbox is fully responsive and works great on mobile devices, tablets, and desktop computers."
+            }
+        ];
+
+        // DOM Elements
+        const messagesContainer = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const suggestionsContainer = document.getElementById('suggestions');
+
+        // Chat State
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+
+        // Initialize
+        function init() {
+            loadChatHistory();
+            renderSuggestions();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        }
+
+        function loadChatHistory() {
+            messagesContainer.innerHTML = '';
+            if (chatHistory.length === 0) {
+                messagesContainer.innerHTML = '<div class="welcome-message">Start by typing a question or click a suggestion below</div>';
+            } else {
+                chatHistory.forEach(msg => {
+                    displayMessage(msg.text, msg.sender);
+                });
+                scrollToBottom();
+            }
+        }
+
+        function renderSuggestions() {
+            suggestionsContainer.innerHTML = '';
+            const suggestions = [
+                "How do I use this?",
+                "What is this?",
+                "Can I search?",
+                "Is it private?"
+            ];
+            
+            suggestions.forEach(suggestion => {
+                const chip = document.createElement('div');
+                chip.className = 'chip';
+                chip.textContent = suggestion;
+                chip.addEventListener('click', () => {
+                    userInput.value = suggestion;
+                    sendMessage();
+                });
+                suggestionsContainer.appendChild(chip);
+            });
+        }
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Display user message
+            displayMessage(message, 'user');
+            chatHistory.push({ text: message, sender: 'user' });
+            userInput.value = '';
+
+            // Find and display bot response
+            const answer = findBestMatch(message);
+            setTimeout(() => {
+                displayMessage(answer, 'bot');
+                chatHistory.push({ text: answer, sender: 'bot' });
+                saveChatHistory();
+            }, 500);
+        }
+
+        function findBestMatch(userQuery) {
+            const queryWords = userQuery.toLowerCase().split(/\s+/);
+            let bestMatch = null;
+            let bestScore = 0;
+
+            faqDatabase.forEach(faq => {
+                let score = 0;
+                const faqText = (faq.question + ' ' + faq.answer).toLowerCase();
+                
+                // TF-IDF-like scoring
+                queryWords.forEach(word => {
+                    if (word.length > 2) { // Ignore very short words
+                        const wordCount = (faqText.match(new RegExp(word, 'g')) || []).length;
+                        score += wordCount;
+                    }
+                });
+
+                // Keyword matching bonus
+                faq.keywords.forEach(keyword => {
+                    if (queryWords.includes(keyword)) {
+                        score += 5; // Bonus for keyword match
+                    }
+                });
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = faq;
+                }
+            });
+
+            return bestMatch 
+                ? bestMatch.answer 
+                : "I'm not sure about that. Could you rephrase your question? Or try asking about: how to use, what is this, search, privacy, or mobile support.";
+        }
+
+        function displayMessage(text, sender) {
+            if (messagesContainer.querySelector('.welcome-message')) {
+                messagesContainer.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = text;
+            
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function saveChatHistory() {
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
